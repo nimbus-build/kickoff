@@ -1,0 +1,95 @@
+workspace(name = "build_nimbus_kickoff")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "rules_rust",
+    patches = [
+        "//third_party/rules_rust:0001-Tweak-Toolchain-Triples.patch",
+        "//third_party/rules_rust:0002-Support-Windows-Stripped-Binaires.patch",
+    ],
+    sha256 = "c46bdafc582d9bd48a6f97000d05af4829f62d5fee10a2a3edddf2f3d9a232c1",
+    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.28.0/rules_rust-v0.28.0.tar.gz"],
+)
+
+load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_repository_set")
+
+rules_rust_dependencies()
+
+RUST_EXEC_TRIPLES = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-gnu",
+    "x86_64-unknown-linux-gnu",
+]
+
+RUST_TARGET_TRIPLES = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-gnu",
+    "x86_64-unknown-linux-gnu",
+]
+
+RUSTC_FLAGS = [
+    "-C",
+    "opt-level=s",
+    "-C",
+    "strip=symbols",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+]
+
+[
+    rust_repository_set(
+        name = "org_rustlang_rust_{arch}_{os}".format(
+            arch = triple.split("-")[0],
+            os = triple.split("-")[2],
+        ),
+        edition = "2021",
+        exec_triple = triple,
+        extra_rustc_flags = {target: RUSTC_FLAGS for target in RUST_TARGET_TRIPLES},
+        extra_target_triples = [t for t in RUST_TARGET_TRIPLES if t != triple],
+        versions = ["1.72.1"],
+    )
+    for triple in RUST_EXEC_TRIPLES
+]
+
+[
+    register_toolchains(
+        "@org_rustlang_rust_{exec_arch}_{exec_os}__{target_triple}__stable//:toolchain".format(
+            exec_arch = exec_triple.split("-")[0],
+            exec_os = exec_triple.split("-")[2],
+            target_triple = target_triple,
+        ),
+    )
+    for exec_triple in RUST_EXEC_TRIPLES
+    for target_triple in RUST_TARGET_TRIPLES
+]
+
+load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
+
+crate_universe_dependencies()
+
+load("@rules_rust//crate_universe:defs.bzl", "crates_repository")
+
+crates_repository(
+    name = "crates.io",
+    cargo_lockfile = "//:Cargo.lock",
+    lockfile = "//:cargo-bazel.lock.json",
+    manifests = [
+        "//:Cargo.toml",
+        "//runtime:Cargo.toml",
+        "//cli:Cargo.toml",
+    ],
+    rust_toolchain_cargo_template = "@org_rustlang_rust_{arch}_{system}__{triple}__{channel}_tools//:bin/{tool}",
+    rust_toolchain_rustc_template = "@org_rustlang_rust_{arch}_{system}__{triple}__{channel}_tools//:bin/{tool}",
+    supported_platform_triples = RUST_TARGET_TRIPLES,
+)
+
+load("@crates.io//:defs.bzl", "crate_repositories")
+
+crate_repositories()

@@ -1,0 +1,56 @@
+--- toolchain/zig-wrapper.zig	2000-01-01 11:00:00
++++ toolchain/zig-wrapper.zig	2023-10-02 17:40:31
+@@ -128,11 +128,49 @@
+ 
+     switch (action) {
+         .err => |msg| return fatal("{s}", .{msg}),
+-        .exec => |params| {
+-            if (builtin.os.tag == .windows)
+-                return spawnWindows(arena, params)
++        .exec => |params| {
++            var sanitizedArgs = ArrayListUnmanaged([]const u8){};
++
++            for (params.args.items) |arg| {
++                if (std.mem.startsWith(u8, arg,"-Wl,-exported_symbols_list,")) continue;
++                if (std.mem.containsAtLeast(u8, arg, 1, "libcompiler_builtins-") and std.mem.endsWith(u8, arg, ".rlib")) continue;
++                if (std.mem.eql(u8, arg, "-Wl,-dylib")) continue;
++                if (std.mem.eql(u8, arg, "-Wl,--disable-auto-image-base")) continue;
++                if (std.mem.eql(u8, arg, "-Wl,--dynamicbase")) continue;
++                if (std.mem.eql(u8, arg, "-Wl,--large-address-aware")) continue;
++                if (std.mem.eql(u8, arg, "-lwindows")) continue;
++                if (std.mem.eql(u8, arg, "-l:libpthread.a")) continue;
++                if (std.mem.eql(u8, arg, "-lgcc")) continue;
++                if (std.mem.eql(u8, arg, "-lgcc_eh")) {
++                    sanitizedArgs.append(arena, "-lc++") catch unreachable;
++                    continue;
++                }
++                if (std.mem.eql(u8, arg, "-lgcc_s")) {
++                    sanitizedArgs.append(arena, "-unwind") catch unreachable;
++                    continue;
++                }
++                if (std.mem.eql(u8, arg, "-Wl,-Bdynamic")) {
++                    sanitizedArgs.append(arena, "-Wl,-search_paths_first") catch unreachable;
++                    continue;
++                }
++                sanitizedArgs.append(arena, arg) catch unreachable;
++            }
++
++            const cwd = std.fs.cwd();
++            var file = cwd.createFile("libiconv.tbd", .{}) catch unreachable;
++            defer file.close();
++
++            const LIBICONV_TBD = @embedFile("libiconv.tbd");
++            file.writeAll(LIBICONV_TBD) catch unreachable;
++
++            const extraLibPath = cwd.realpathAlloc(arena, ".") catch unreachable;
++            sanitizedArgs.append(arena, "-L") catch unreachable;
++            sanitizedArgs.append(arena, extraLibPath) catch unreachable;
++
++            if (builtin.os.tag == .windows)
++                return spawnWindows(arena, ExecParams{.args = sanitizedArgs, .env = params.env})
+             else
+-                return execUnix(arena, params);
++                return execUnix(arena, ExecParams{.args = sanitizedArgs, .env = params.env});
+         },
+     }
+ }

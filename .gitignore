@@ -1,0 +1,12 @@
+# MacOS filesystem extended attributes store file.
+# See: https://en.wikipedia.org/wiki/.DS_Store
+.DS_Store
+
+# Rust's native toolchain output directory.
+target/
+
+# Bazel convenience symlinks.
+bazel-*
+
+# User-defined overrides for Bazel.
+.bazelrc.user

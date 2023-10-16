@@ -1,0 +1,12 @@
+--- rust/private/rustc.bzl	2023-09-28 01:38:56
++++ rust/private/rustc.bzl	2023-10-14 22:39:35
+@@ -1246,7 +1246,8 @@
+     pdb_file = None
+     dsym_folder = None
+     if crate_info.type in ("cdylib", "bin"):
+-        if toolchain.target_os == "windows":
++        windows_rustc_flags = toolchain.extra_rustc_flags + rust_flags
++        if toolchain.target_os == "windows" and "strip=symbols" not in windows_rustc_flags and "strip=debug" not in windows_rustc_flags:
+             pdb_file = ctx.actions.declare_file(crate_info.output.basename[:-len(crate_info.output.extension)] + "pdb", sibling = crate_info.output)
+             action_outputs.append(pdb_file)
+         elif toolchain.target_os == "darwin":

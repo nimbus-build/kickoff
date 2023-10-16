@@ -1,0 +1,31 @@
+# Copyright (c) 2023 The Nimbus Authors. All rights reserved.
+#
+# The use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "kickoff",
+    srcs = glob(["src/*.rs"]),
+    visibility = [
+        "//cli:__pkg__",
+        "//runtime:__pkg__",
+    ],
+    deps = [
+        "@crates.io//:libc",
+        "@crates.io//:rand",
+        "@crates.io//:serde",
+        "@crates.io//:serde_json",
+    ] + select({
+        "@platforms//os:windows": ["@crates.io//:widestring"],
+        "//conditions:default": [],
+    }),
+)
+
+rust_test(
+    name = "unit_tests",
+    size = "small",
+    crate = ":kickoff",
+    visibility = ["//visibility:private"],
+)

@@ -1,0 +1,19 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "cli"
+version = "0.0.1"
+edition = "2021"
+description = "A CLI to create self-contained, unopinionated, fast and lightweight executable launchers."
+authors = ["Albert Lloveras Carbonell", "Albert Lloveras Carbonell <albert@nimbus.build>"]
+
+[dependencies]
+kickoff = { path = "../" }
+clap = { version = "4.3.11", features = ["derive", "string"] }
+phf = { version = "0.11.2", features = ["macros"] }
+serde_json = { version = "1"}
+
+# Override to force the name the output binary to be "kickoff".
+[[bin]]
+name = "kickoff"
+path = "src/main.rs"

@@ -1,0 +1,52 @@
+--- rust/repositories.bzl	2023-09-28 01:38:56
++++ rust/repositories.bzl	2023-10-02 13:45:21
+@@ -37,11 +37,9 @@
+ # Note: Code in `.github/workflows/crate_universe.yaml` looks for this line, if you remove it or change its format, you will also need to update that code.
+ DEFAULT_TOOLCHAIN_TRIPLES = {
+     "aarch64-apple-darwin": "rust_darwin_aarch64",
+-    "aarch64-pc-windows-msvc": "rust_windows_aarch64",
+     "aarch64-unknown-linux-gnu": "rust_linux_aarch64",
+     "x86_64-apple-darwin": "rust_darwin_x86_64",
+-    "x86_64-pc-windows-msvc": "rust_windows_x86_64",
+-    "x86_64-unknown-freebsd": "rust_freebsd_x86_64",
++    "x86_64-pc-windows-gnu": "rust_windows_x86_64",
+     "x86_64-unknown-linux-gnu": "rust_linux_x86_64",
+ }
+
+
+--- rust/platform/triple_mappings.bzl	2023-09-28 01:38:56
++++ rust/platform/triple_mappings.bzl	2023-10-05 00:06:12
+@@ -6,16 +6,16 @@
+ SUPPORTED_T1_PLATFORM_TRIPLES = [
+     "aarch64-unknown-linux-gnu",
+     "i686-apple-darwin",
+-    "i686-pc-windows-msvc",
++    "i686-pc-windows-gnu",
+     "i686-unknown-linux-gnu",
+     "x86_64-apple-darwin",
+-    "x86_64-pc-windows-msvc",
++    "x86_64-pc-windows-gnu",
+     "x86_64-unknown-linux-gnu",
+     # N.B. These "alternative" envs are not supported, as bazel cannot distinguish between them
+     # and others using existing @platforms// config_values
+     #
+-    #"i686-pc-windows-gnu",
+-    #"x86_64-pc-windows-gnu",
++    #"i686-pc-windows-msvc",
++    #"x86_64-pc-windows-mscv",
+ ]
+ 
+ # Some T2 Platforms are supported, provided we have mappings to @platforms// entries.
+
+
+--- rust/platform/triple_mappings.bzl	2023-10-05 00:08:00
++++ rust/platform/triple_mappings.bzl	2023-10-05 01:10:34
+@@ -194,7 +194,7 @@
+     "unknown": [],
+     "uwp": ["ws2_32.lib"],
+     "wasi": [],
+-    "windows": ["advapi32.lib", "ws2_32.lib", "userenv.lib", "Bcrypt.lib"],
++    "windows": [],
+ }
+ 
+ def cpu_arch_to_constraints(cpu_arch, *, system = None):

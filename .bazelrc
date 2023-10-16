@@ -1,0 +1,145 @@
+# Copyright (c) 2022 The Nimbus Authors. All rights reserved.
+#
+# The use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# IMPORTANT: The order of the different sections of this configuration file isn't arbitrary. It
+# matches the same precedence and inheritance rules Bazel will use to parse its contents.
+# See: https://bazel.build/run/bazelrc#option-defaults
+
+# ================================================================================================ #
+# Startup Options
+# ================================================================================================ #
+
+# Ensures that the Bazel server will notice when a directory changes. This is
+# crucial for workspaces that have a directory listed in the sources of some
+# target.
+startup --host_jvm_args=-DBAZEL_TRACK_SOURCE_DIRECTORIES=1
+
+# A 1GB max heap size is currently enough. This may need to be increased in the
+# future if Bazel throws OOMs due to organic codebase growth. This number should
+# not be bumped arbitrarily. Doing so can hide symptoms of bigger issues such as
+# sub-optimal rule implementations which may have a massive negative impact on
+# engineering productivity.
+# See: https://docs.bazel.build/versions/main/skylark/performance.html
+startup --host_jvm_args="-Xmx1G"
+
+# ================================================================================================ #
+# Common Options
+# ================================================================================================ #
+
+# Enable Bazel module-focused external dependnecy manager (codenamed bzlmod).
+# See: https://bazel.build/external/overview#bzlmod
+common --enable_bzlmod=true
+
+# Ensures that @local_config_cc toolchains aren't considered during toolchain
+# resolution to keep builds hermetic.
+#
+#  - BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1: Do not try to auto-detect any C/C++
+#    toolchains on the host platform.
+#  - BAZEL_USE_CPP_ONLY_TOOLCHAIN=1: Do not consider any XCode-based C/C++
+#    toolchains.
+#
+# See: https://github.com/bazelbuild/bazel/issues/12712
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --repo_env=BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
+
+# Do not use "cc_configure" from "@bazel_tools//tools/cpp/cc_configure.bzl" and, instead, use
+# "rules_cc_toolchains" from "@rules_cc//cc/repositories.bzl" if configuring C/C++ toolchains
+# is necessary.
+common --incompatible_use_cc_configure_from_rules_cc=true
+
+# ================================================================================================ #
+# Build & Query Options
+# ================================================================================================ #
+
+# IMPORTANT: if a flag for `build` has an equivalent flag for `query`, it should be added for both
+# commands independently to prevent Bazel from invalidating the analysis cache due to flag changes.
+
+# Disable the legacy toolchain infrastructure for C/C++ and use Bazel's toolchain
+# resolution system instead.
+build --incompatible_enable_cc_toolchain_resolution=true
+
+# Disable the legacy toolchain infrastructure for Java and use Bazel's toolchain
+# resolution system intead.
+build --incompatible_use_toolchain_resolution_for_java_rules=true
+
+# Protect against environment variables like PATH sneaking into the build which
+# can cause massive cache misses when they change.
+build --incompatible_strict_action_env=true
+
+# Disable Bazel's default beahviour to use "__init__.py" files to delimit
+# Python packages.
+build --incompatible_default_to_explicit_init_py=true
+
+# Speed up all builds by not checking if output files have been modified.
+build --experimental_check_output_files=false
+query --experimental_check_output_files=false
+build --experimental_check_external_repository_files=false
+query --experimental_check_external_repository_files=false
+
+# Do not abort the build if a gRPC call to the remote cache fails. Instead, fall
+# back to the local cache.
+build --remote_local_fallback=true
+
+# Print a heap dump when Bazel runs out of memory. This is usefull for collecting
+# debugging information to investigate the problem or to report it to the Bazel
+# maintainers.
+build --heap_dump_on_oom=true
+
+# Improve the sandbox performance by skipping creation of the deprecated symlinks
+# <workspace>/external/<repo-name> within the runfiles.
+build --legacy_external_runfiles=false
+
+# Protect against accidentally making non-hermetic actions/tests which depend
+# on remote services. Although discouraged, the enforcement can be disabled by
+# tagging individual targets with 'tags=["requires-network"]'.
+build --sandbox_default_allow_network=false
+
+# Ensure that tags applied in your BUILD file, like tags = ["no-remote"] are 
+# propagated to all actions created by the rule.
+# See: https://github.com/bazelbuild/bazel/issues/7766
+build --experimental_allow_tags_propagation=true
+query --experimental_allow_tags_propagation=true
+
+# Improve remote cache checking speed by memorizing merkle tree calculations.
+# Also, set a maximum number of cached merkle-trees to bound the cache memory
+# usage.
+build --experimental_remote_merkle_tree_cache=true
+query --experimental_remote_merkle_tree_cache=true
+build --experimental_remote_merkle_tree_cache_size=10
+query --experimental_remote_merkle_tree_cache_size=10
+
+# Do not upload artifacts referenced in the BEP if the action cannot be
+# cached remotely.
+build --experimental_remote_build_event_upload=minimal
+query --experimental_remote_build_event_upload=minimal
+
+# Configure Bazel's Java Toolchain.
+build --java_language_version=17                # The Java version to build the first-party code for.
+build --tool_java_language_version=17           # The Java version to build Bazel's Java tools for.
+build --java_runtime_version=remotejdk_17       # The JRE version to run our first-party Java artifacts.
+build --tool_java_runtime_version=remotejdk_17  # The JRE version to run Bazel's Java tools artifacts.
+
+# ================================================================================================ #
+# Test Options
+# ================================================================================================ #
+
+# Output test logs when one or more tests fail.
+test --test_output=errors
+
+# Output up to 10MB of test logs.
+test --experimental_ui_max_stdouterr_bytes=10485760 # 10MB
+
+# Fixes a Bazel bug that caused tests tagged as exclusive 'tags=["exclusive']'
+# would not be run in a sandboxed environment.
+test --incompatible_exclusive_test_sandboxed=true
+
+# Bazel's default for test_timeout is medium (5 min), but most tests should
+# instead be short (1 min).
+test --test_verbose_timeout_warnings=true
+
+# ================================================================================================ #
+# User Overrides
+# ================================================================================================ #
+try-import %workspace%/.bazelrc.user

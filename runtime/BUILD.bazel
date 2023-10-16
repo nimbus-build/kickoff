@@ -1,0 +1,30 @@
+# Copyright (c) 2023 The Nimbus Authors. All rights reserved.
+#
+# The use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("//tools/bazel:defs.bzl", "multiplatform_binary")
+
+rust_binary(
+    name = "runtime",
+    srcs = glob(["src/**/*.rs"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:kickoff",
+        "@crates.io//:regex",
+    ],
+)
+
+multiplatform_binary(
+    name = "runtimes",
+    binary = ":runtime",
+    target_platforms = {
+        "@zig_sdk//platform:linux_arm64": "kickoff-runtime-aarch64-linux",
+        "@zig_sdk//platform:linux_amd64": "kickoff-runtime-x86_64-linux",
+        "@zig_sdk//platform:darwin_arm64": "kickoff-runtime-aarch64-macos",
+        "@zig_sdk//platform:darwin_amd64": "kickoff-runtime-x86_64-macos",
+        "@zig_sdk//platform:windows_amd64": "kickoff-runtime-x86_64-windows.exe",
+    },
+    visibility = ["//visibility:public"],
+)
