@@ -50,3 +50,17 @@
  }
  
  def cpu_arch_to_constraints(cpu_arch, *, system = None):
+
+--- rust/platform/triple.bzl
++++ rust/platform/triple.bzl
+@@ -186,9 +186,6 @@ def get_host_triple(repository_ctx, abi = None):
+
+     if "win" in repository_ctx.os.name:
+         cpu = _query_cpu_architecture(repository_ctx, supported_architectures["windows"], True)
+-        return triple("{}-pc-windows-{}".format(
+-            cpu,
+-            abi or "msvc",
+-        ))
++        return triple("{}-pc-windows-gnu".format(cpu))
+
+     fail("Unhandled host os: {}", repository_ctx.os.name)

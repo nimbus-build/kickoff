@@ -1,6 +1,6 @@
 --- toolchain/zig-wrapper.zig	2000-01-01 11:00:00
 +++ toolchain/zig-wrapper.zig	2023-10-02 17:40:31
-@@ -128,11 +128,49 @@
+@@ -128,11 +128,51 @@
  
      switch (action) {
          .err => |msg| return fatal("{s}", .{msg}),
@@ -11,9 +11,11 @@
 +            var sanitizedArgs = ArrayListUnmanaged([]const u8){};
 +
 +            for (params.args.items) |arg| {
++                std.debug.print("{s}\n", .{arg});
 +                if (std.mem.startsWith(u8, arg,"-Wl,-exported_symbols_list,")) continue;
 +                if (std.mem.containsAtLeast(u8, arg, 1, "libcompiler_builtins-") and std.mem.endsWith(u8, arg, ".rlib")) continue;
 +                if (std.mem.eql(u8, arg, "-Wl,-dylib")) continue;
++                if (std.mem.eql(u8, arg, "-Wl,--no-undefined-version")) continue;
 +                if (std.mem.eql(u8, arg, "-Wl,--disable-auto-image-base")) continue;
 +                if (std.mem.eql(u8, arg, "-Wl,--dynamicbase")) continue;
 +                if (std.mem.eql(u8, arg, "-Wl,--large-address-aware")) continue;
