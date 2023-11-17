@@ -1,0 +1,23 @@
+name: Pre-Merge Checks
+
+on: [ pull_request ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-12, windows-2022]
+
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Build & Test All
+        run: bazelisk test //...
